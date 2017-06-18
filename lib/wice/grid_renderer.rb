@@ -367,6 +367,12 @@ module Wice
         end
       end
 
+      # Remove `:translations` from the assoc list. They will be added separately.
+      assocs.delete(:translations) unless assocs.nil?
+      if assocs.is_a?(Array) && assocs.empty?
+        assocs = nil
+      end
+
       klass = Columns::ViewColumn
       if options[:attribute] &&
         col_type_and_table_name = @grid.declare_column(
