@@ -124,7 +124,8 @@ module Wice
           saved_query:                nil,
           with_paginated_resultset:   nil,
           with_resultset:             nil,
-          use_default_scope:          ConfigurationProvider.value_for(:USE_DEFAULT_SCOPE)
+          use_default_scope:          ConfigurationProvider.value_for(:USE_DEFAULT_SCOPE),
+          locale:                     nil
         }
       rescue NameError
         raise NameError.new('A constant is missing in wice_grid_config.rb: ' + $ERROR_INFO.message +
@@ -149,6 +150,11 @@ module Wice
       end
       raise WiceGridArgumentError.new('name of the grid can only contain alphanumeruc characters') unless @name =~ /^[a-zA-Z\d_]*$/
 
+      # Add translations
+      if @options[:locale].present?
+        @relation = join_translation_table(@relation, @options[:locale], @klass)
+      end
+
       @table_column_matrix = TableColumnMatrix.new
       @table_column_matrix.default_model_class = @klass
 
@@ -172,6 +178,17 @@ module Wice
       process_params
 
       @ar_options_formed = false
+    end
+
+    def join_translation_table(relation, locale, klass)
+      translation_table = klass.translations_table_name
+      table = klass.table_name
+      ref = klass.model_name.param_key
+
+      relation.joins("LEFT OUTER JOIN #{translation_table} ON #{translation_table}.#{ref}_id = #{table}.id ",
+                     "AND #{translation_table}.locale = ",
+                     ActiveRecord::Base.connection.quote(locale))
+              .preload(:translations)
     end
 
     # A block executed from within the plugin to process records of the current page.
